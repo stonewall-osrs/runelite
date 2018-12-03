@@ -30,17 +30,25 @@ import java.awt.Graphics2D;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Player;
+import net.runelite.api.SkullIcon;
+import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.ItemStack;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.OverlayUtil;
 
+import static net.runelite.api.SkullIcon.SKULL;
+
 @Singleton
 public class PlayerIndicatorsMinimapOverlay extends Overlay
 {
 	private final PlayerIndicatorsService playerIndicatorsService;
 	private final PlayerIndicatorsConfig config;
+
+	@Inject
+	private ItemManager itemManager;
 
 	@Inject
 	private PlayerIndicatorsMinimapOverlay(PlayerIndicatorsConfig config, PlayerIndicatorsService playerIndicatorsService)
@@ -62,14 +70,41 @@ public class PlayerIndicatorsMinimapOverlay extends Overlay
 	private void renderPlayerOverlay(Graphics2D graphics, Player actor, Color color)
 	{
 		final String name = actor.getName().replace('\u00A0', ' ');
-
 		if (config.drawMinimapNames())
 		{
 			final net.runelite.api.Point minimapLocation = actor.getMinimapLocation();
 
 			if (minimapLocation != null)
 			{
-				OverlayUtil.renderTextLocation(graphics, minimapLocation, name, color);
+				if (config.showCombatLevel())
+				{
+					if (actor.getSkullIcon() != null && config.showMapSkull())
+					{
+						if (actor.getSkullIcon().compareTo(SKULL) == 0)
+						{
+							OverlayUtil.renderTextLocation(graphics, minimapLocation, "[X] " + name + " - (Lvl " + actor.getCombatLevel() + ")", color);
+						}
+					}
+					else
+					{
+						OverlayUtil.renderTextLocation(graphics, minimapLocation, name + " - (Lvl " + actor.getCombatLevel() + ")", color);
+					}
+
+					 	/*
+					int equipmentValue = 0;
+					for (int id:actor.getPlayerComposition().getEquipmentIds())
+					{
+						equipmentValue += itemManager.getItemComposition(id).getPrice();
+					}
+					System.out.println(name + " value of equipped items: " + String.valueOf(equipmentValue));
+					*/
+				}
+
+
+				else
+				{
+					OverlayUtil.renderTextLocation(graphics, minimapLocation, name, color);
+				}
 			}
 		}
 	}

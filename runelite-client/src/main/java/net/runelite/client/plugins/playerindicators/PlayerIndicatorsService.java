@@ -30,6 +30,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.api.coords.WorldPoint;
 
 @Singleton
 public class PlayerIndicatorsService
@@ -42,6 +43,31 @@ public class PlayerIndicatorsService
 	{
 		this.config = config;
 		this.client = client;
+	}
+
+	int getWildernessLevelFrom(WorldPoint point)
+	{
+		int x = point.getX();
+		int y = point.getY();
+
+		int underLevel = ((y - 9920) / 8) + 1;
+		int upperLevel = ((y - 3520) / 8) + 1;
+		int wildernessLevel = y > 6400 ? underLevel : upperLevel;
+
+		// Add special cases here which do not follow the formula
+
+		return wildernessLevel;
+	}
+
+	// Usage
+	private boolean isAttackable(Client c, Player p)
+	{
+		if (Math.abs(c.getLocalPlayer().getCombatLevel() - p.getCombatLevel())
+				< getWildernessLevelFrom(client.getLocalPlayer().getWorldLocation()))
+		{
+			return true;
+		}
+		return false;
 	}
 
 	public void forEachPlayer(final BiConsumer<Player, Color> consumer)
@@ -85,6 +111,11 @@ public class PlayerIndicatorsService
 			else if (config.highlightNonClanMembers() && !isClanMember)
 			{
 				consumer.accept(player, config.getNonClanMemberColor());
+			}
+			else if (config.highlightTargets() && isAttackable(client, player) && !player.isFriend() &&
+					!player.isClanMember())
+			{
+				consumer.accept(player, config.getTargetColor());
 			}
 		}
 	}

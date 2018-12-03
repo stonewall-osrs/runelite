@@ -37,6 +37,7 @@ import net.runelite.api.Player;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ClanManager;
+import net.runelite.client.game.ItemStack;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -154,6 +155,7 @@ public class PlayerIndicatorsPlugin extends Plugin
 			{
 				color = config.getNonClanMemberColor();
 			}
+			else if (config.highlightTargets() )
 
 			if (image != -1 || color != null)
 			{

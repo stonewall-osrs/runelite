@@ -25,6 +25,7 @@
  */
 package net.runelite.client.plugins.timers;
 
+import com.google.common.eventbus.Subscribe;
 import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
 import javax.inject.Inject;
@@ -56,18 +57,19 @@ import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.LocalPlayerDeath;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.NpcDespawned;
+import net.runelite.api.events.PlayerDespawned;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetHiddenChanged;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import static net.runelite.api.widgets.WidgetInfo.PVP_WORLD_SAFE_ZONE;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SpriteManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import static net.runelite.client.plugins.timers.GameTimer.*;
+import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 
 @PluginDescriptor(
@@ -132,10 +134,25 @@ public class TimersPlugin extends Plugin
 	@Inject
 	private InfoBoxManager infoBoxManager;
 
+	@Inject
+	private FreezeManager freezeManager;
+
+	@Inject
+	private FreezeOverlay freezeOverlay;
+
+	@Inject
+	private OverlayManager overlayManager;
+
 	@Provides
 	TimersConfig getConfig(ConfigManager configManager)
 	{
 		return configManager.getConfig(TimersConfig.class);
+	}
+
+	@Override
+	protected void startUp() throws Exception
+	{
+		overlayManager.add(freezeOverlay);
 	}
 
 	@Override
@@ -148,6 +165,7 @@ public class TimersPlugin extends Plugin
 		lastAnimation = -1;
 		loggedInRace = false;
 		widgetHiddenChangedOnPvpWorld = false;
+		overlayManager.remove(freezeOverlay);
 	}
 
 	@Subscribe
@@ -511,6 +529,18 @@ public class TimersPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onPlayerDespawned(PlayerDespawned playerDespawned)
+	{
+		final Player player = playerDespawned.getPlayer();
+		// All despawns ok: death, teleports, log out, runs away from screen
+		if (config.showFreezes())
+		{
+			freezeManager.remove(player);
+		}
+
+	}
+
+	@Subscribe
 	public void onGameTick(GameTick event)
 	{
 		loggedInRace = false;
@@ -521,8 +551,7 @@ public class TimersPlugin extends Plugin
 		if (freezeTimer != null)
 		{
 			// assume movement means unfrozen
-			if (freezeTime != client.getTickCount()
-				&& !currentWorldPoint.equals(lastPoint))
+			if (!currentWorldPoint.equals(lastPoint))
 			{
 				removeGameTimer(freezeTimer.getTimer());
 				freezeTimer = null;
@@ -530,6 +559,9 @@ public class TimersPlugin extends Plugin
 		}
 
 		lastPoint = currentWorldPoint;
+
+		freezeManager.prune();
+
 
 		if (!widgetHiddenChangedOnPvpWorld)
 		{
@@ -628,6 +660,67 @@ public class TimersPlugin extends Plugin
 	public void onGraphicChanged(GraphicChanged event)
 	{
 		Actor actor = event.getActor();
+
+		if (config.showFreezes())
+		{
+			if (actor.getGraphic() == BIND.getGraphicId())
+			{
+				if (client.isPrayerActive(Prayer.PROTECT_FROM_MAGIC)
+					&& !client.getWorldType().contains(WorldType.SEASONAL_DEADMAN))
+				{
+					freezeManager.put(actor, HALFBIND);
+				}
+				else
+				{
+					freezeManager.put(actor, BIND);
+				}
+			}
+
+			if (actor.getGraphic() == SNARE.getGraphicId())
+			{
+				if (client.isPrayerActive(Prayer.PROTECT_FROM_MAGIC)
+					&& !client.getWorldType().contains(WorldType.SEASONAL_DEADMAN))
+				{
+					freezeManager.put(actor, HALFSNARE);
+				}
+				else
+				{
+					freezeManager.put(actor, SNARE);
+				}
+			}
+
+			if (actor.getGraphic() == ENTANGLE.getGraphicId())
+			{
+				if (client.isPrayerActive(Prayer.PROTECT_FROM_MAGIC)
+					&& !client.getWorldType().contains(WorldType.SEASONAL_DEADMAN))
+				{
+					freezeManager.put(actor, HALFENTANGLE);
+				}
+				else
+				{
+					freezeManager.put(actor, ENTANGLE);
+				}
+			}
+
+			if (actor.getGraphic() == ICERUSH.getGraphicId())
+			{
+				freezeManager.put(actor, ICERUSH);
+			}
+
+			if (actor.getGraphic() == ICEBURST.getGraphicId())
+			{
+				freezeManager.put(actor, ICEBURST);
+			}
+
+			if (actor.getGraphic() == ICEBLITZ.getGraphicId())
+			{
+				freezeManager.put(actor, ICEBLITZ);
+			}
+			if (actor.getGraphic() == ICEBARRAGE.getGraphicId())
+			{
+				freezeManager.put(actor, ICEBARRAGE);
+			}
+		}
 
 		if (actor != client.getLocalPlayer())
 		{

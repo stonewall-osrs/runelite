@@ -54,12 +54,7 @@ import javax.inject.Inject;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.Point;
-import net.runelite.api.SpriteID;
-import net.runelite.api.WorldType;
+import net.runelite.api.*;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
@@ -79,6 +74,8 @@ import net.runelite.client.Notifier;
 import static net.runelite.client.RuneLite.SCREENSHOT_DIR;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.PlayerLootReceived;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SpriteManager;
 import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
@@ -94,6 +91,7 @@ import net.runelite.client.util.HotkeyListener;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 import net.runelite.http.api.RuneLiteAPI;
+import net.runelite.http.api.item.ItemPrice;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
@@ -127,6 +125,8 @@ public class ScreenshotPlugin extends Plugin
 		"falls before your might", "A humiliating defeat for", "With a crushing blow you", "thinking challenging you",
 		"Can anyone defeat you? Certainly", "was no match for you", "You were clearly a better fighter than", "RIP",
 		"You have defeated", "What an embarrassing performance by", "was no match for your awesomeness");
+
+	private static String victimUsername;
 
 	static String format(Date date)
 	{
@@ -179,6 +179,9 @@ public class ScreenshotPlugin extends Plugin
 
 	@Inject
 	private SpriteManager spriteManager;
+
+	@Inject
+	private ItemManager itemManager;
 
 	@Getter(AccessLevel.PACKAGE)
 	private BufferedImage reportButton;
@@ -286,6 +289,14 @@ public class ScreenshotPlugin extends Plugin
 	@Subscribe
 	public void onLocalPlayerDeath(LocalPlayerDeath death)
 	{
+		int value = 0;
+		for (int i:
+				client.getLocalPlayer().getPlayerComposition().getEquipmentIds())
+		{
+			System.out.println(itemManager.getItemComposition(i).getName() + " : "
+					+ itemManager.getItemPrice(i));
+			value += itemManager.getItemPrice(i);
+		}
 		if (config.screenshotPlayerDeath())
 		{
 			takeScreenshot("Death " + format(new Date()));
@@ -351,7 +362,16 @@ public class ScreenshotPlugin extends Plugin
 
 		if (config.screenshotKills() && KILL_MESSAGES.stream().anyMatch(chatMessage::contains))
 		{
-			String fileName = "Kill " + format(new Date());
+			String fileName;
+			if (config.usernameFilePath() && victimUsername != null)
+			{
+				fileName = victimUsername + " kill " + format(new Date());
+				victimUsername = null;
+			}
+			else
+			{
+				fileName = "Kill " + format(new Date());
+			}
 			takeScreenshot(fileName);
 		}
 
@@ -467,6 +487,18 @@ public class ScreenshotPlugin extends Plugin
 		}
 
 		takeScreenshot(fileName);
+	}
+
+	@Subscribe
+	public void onPlayerLootReceived(final PlayerLootReceived playerLootReceived)
+	{
+		final Player player = playerLootReceived.getPlayer();
+		final String name = player.getName();
+		String fileName = name + " kill " + format(new Date());
+		takeScreenshot(fileName);
+
+
+
 	}
 
 	/**

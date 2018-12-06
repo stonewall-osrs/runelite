@@ -41,17 +41,4 @@ public interface AntiDragConfig extends Config
 	{
 		return 600 / 20; // one game tick
 	}
-
-
-	@ConfigItem(
-			keyName = "enableAD",
-			name = "Enable Anti Drag",
-			description = "Enables always-on anti-drag. When disabled anti-drag only works with shift",
-			position = 2
-	)
-	default boolean enableAD()
-	{
-		return false; // disabled by default
-	}
-
 }

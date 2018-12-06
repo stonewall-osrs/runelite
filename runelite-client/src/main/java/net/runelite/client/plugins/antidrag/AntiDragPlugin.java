@@ -37,7 +37,7 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 
 @PluginDescriptor(
-	name = "Anti Drag",
+	name = "Shift Anti Drag",
 	description = "Prevent dragging an item for a specified delay",
 	tags = {"antidrag", "delay", "inventory", "items"}
 )
@@ -63,10 +63,6 @@ public class AntiDragPlugin extends Plugin implements KeyListener
 	@Override
 	protected void startUp() throws Exception
 	{
-		if (config.enableAD())
-		{
-			client.setInventoryDragDelay(config.dragDelay());
-		}
 		keyManager.registerKeyListener(this);
 	}
 
@@ -86,7 +82,7 @@ public class AntiDragPlugin extends Plugin implements KeyListener
 	@Override
 	public void keyPressed(KeyEvent e)
 	{
-		if (e.getKeyCode() == KeyEvent.VK_SHIFT && !config.enableAD())
+		if (e.getKeyCode() == KeyEvent.VK_SHIFT)
 		{
 			client.setInventoryDragDelay(config.dragDelay());
 		}
@@ -95,7 +91,7 @@ public class AntiDragPlugin extends Plugin implements KeyListener
 	@Override
 	public void keyReleased(KeyEvent e)
 	{
-		if (e.getKeyCode() == KeyEvent.VK_SHIFT && !config.enableAD())
+		if (e.getKeyCode() == KeyEvent.VK_SHIFT)
 		{
 			client.setInventoryDragDelay(DEFAULT_DELAY);
 		}
@@ -106,14 +102,7 @@ public class AntiDragPlugin extends Plugin implements KeyListener
 	{
 		if (!focusChanged.isFocused())
 		{
-				client.setInventoryDragDelay(DEFAULT_DELAY);
-		}
-		else
-		{
-			if (config.enableAD())
-			{
-				client.setInventoryDragDelay(config.dragDelay());
-			}
+			client.setInventoryDragDelay(DEFAULT_DELAY);
 		}
 	}
 }

@@ -106,15 +106,14 @@ public class IdleNotifierPluginTest
 		// Mock config
 		when(config.logoutIdle()).thenReturn(true);
 		when(config.animationIdle()).thenReturn(true);
-		when(config.interactionIdle()).thenReturn(true);
+		when(config.combatIdle()).thenReturn(true);
 		when(config.getIdleNotificationDelay()).thenReturn(0);
 		when(config.getHitpointsThreshold()).thenReturn(42);
 		when(config.getPrayerThreshold()).thenReturn(42);
 
 		// Mock client
 		when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
-		when(client.getKeyboardIdleTicks()).thenReturn(42);
-		when(client.getMouseLastPressedMillis()).thenReturn(System.currentTimeMillis() - 100_000L);
+		when(client.getMouseIdleTicks()).thenReturn(42);
 	}
 
 	@Test
@@ -155,6 +154,7 @@ public class IdleNotifierPluginTest
 		AnimationChanged animationChanged = new AnimationChanged();
 		animationChanged.setActor(player);
 		plugin.onAnimationChanged(animationChanged);
+		plugin.onInteractingChanged(new InteractingChanged(player, monster));
 		plugin.onGameTick(new GameTick());
 
 		// Logout
@@ -230,8 +230,8 @@ public class IdleNotifierPluginTest
 	@Test
 	public void checkCombatLogoutIdle()
 	{
-		// Player is idle
-		when(client.getMouseIdleTicks()).thenReturn(80_000);
+        // Player is idle
+		when(client.getMouseIdleTicks()).thenReturn(282 * 50);
 
 		// But player is being damaged (is in combat)
 		final HitsplatApplied hitsplatApplied = new HitsplatApplied();
@@ -240,19 +240,5 @@ public class IdleNotifierPluginTest
 		plugin.onHitsplatApplied(hitsplatApplied);
 		plugin.onGameTick(new GameTick());
 		verify(notifier, times(0)).notify(any());
-	}
-
-	@Test
-	public void doubleNotifyOnMouseReset()
-	{
-		// Player is idle, but in combat so the idle packet is getting set repeatedly
-		// make sure we are not notifying
-
-		when(client.getKeyboardIdleTicks()).thenReturn(80_000);
-		when(client.getMouseIdleTicks()).thenReturn(14_500);
-
-		plugin.onGameTick(new GameTick());
-		plugin.onGameTick(new GameTick());
-		verify(notifier, times(1)).notify(any());
 	}
 }
